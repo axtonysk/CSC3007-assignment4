@@ -6,7 +6,9 @@
 </head>
 <body>
 <svg></svg>
+<div class="tooltip"></div>
 <script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.js"></script>
 
 <script>
 
@@ -27,6 +29,11 @@ Promise.all([d3.json("links-sample.json"), d3.json("cases-sample.json")]).then(d
 console.log(data[0]); //links
 console.log(data[1]); //cases
 
+var tooltip = d3.select(".tooltip")
+.style("background-color", "white")
+.style("border", "solid black 1px")
+.style("position", "absolute");
+
 let linkpath = svg.append("g")
 .attr("id", "links")
 .selectAll("path")
@@ -46,10 +53,23 @@ let node = svg.append("g")
 .style("fill", function (d) {
     if(d.gender=="male") {return 'cornflowerblue'}
     else{ return 'lightpink'}})
-.call(d3.drag()
-.on("start", dragstarted)
-.on("drag", dragged)
-.on("end", dragended))
+.on("mouseover", function(event, d) {
+    tooltip
+    .html("Age: " + d.age + "<br>" +
+    "Nationality: " + d.nationality + "<br>" +
+    "Occupation: " + d.occupation + "<br>")
+    .style("top", (event.pageY)+"px")
+    .style("left",(event.pageX)+"px")
+    .style("opacity", 1)
+})
+.on("mouseout", (event, d) => {
+    tooltip
+        .transition()
+        .duration(100)
+        .style("opacity", 0)
+})
+
+
 
 let textLayer = svg.append("g")
 .attr("id", "texts")
@@ -59,6 +79,18 @@ let textLayer = svg.append("g")
 .append("text")
 .text(function(d) { return d.id })
 .attr("font-size", "10px");
+
+let image = svg.append("g")
+.selectAll("image")
+.data(data[1])
+.enter()
+.append("image")
+.attr("xlink:href", function(d) {
+      if (d.gender == "male") return "images/male.png"; else return "images/female.png";
+})
+.attr("width", 20)
+.attr("height", 20);
+
 
 let simulation = d3.forceSimulation()
 .nodes(data[1])
@@ -76,33 +108,38 @@ let simulation = d3.forceSimulation()
 
     textLayer
     .attr("x", function(d) { return d.x-12 })
-    .attr("y", function(d) { return d.y+3 })
+    .attr("y", function(d) { return d.y+15 })
+
+    image
+    .attr("x", d => d.x-10)
+    .attr("y", d => d.y-15);
 });
-
-
 
 //console.log(simulation.nodes())
 //console.log(simulation.force("link").links())
 
-function dragstarted(event, d) {
-  if (!event.active) simulation.alphaTarget(0.3).restart();
-  d.fx = d.x;
-  d.fy = d.y;
-}
+var genderScale = d3.scaleOrdinal()
+    .domain(["Male", "Female"])
+    .range(["#6495ED", "#FFB6C1"]);
 
-function dragged(event, d) {
-  d.fx = event.x;
-  d.fy = event.y;
-}
+var genderLegend = d3.legendColor()
+    .labels(["Male", "Female"])
+    .scale(genderScale)
+    .title("Legend");
 
-function dragended(event, d) {
-  if (!event.active) simulation.alphaTarget(0);
-  d.fx = null;
-  d.fy = null;
-}
+var genderScale = d3.scaleOrdinal()
+    .domain(["Male", "Female"])
+    .range(["#6495ED", "#FFB6C1"]);
 
+var genderLegend = d3.legendColor()
+    .labels(["Male", "Female"])
+    .scale(genderScale)
+    .title("Legend");
+
+    svg.append("g")
+    .attr("transform", "translate(0,10)")
+    .call(genderLegend);
 })
-
 
 </script>
 
